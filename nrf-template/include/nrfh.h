@@ -1,5 +1,5 @@
-#ifndef LIBJNRF_LIBRARY_H
-#define LIBJNRF_LIBRARY_H
+#ifndef NRFH_LIBRARY_H
+#define NRFH_LIBRARY_H
 
 #include <ble.h>
 
@@ -20,13 +20,13 @@ typedef struct {
   ModeFunctions *functions;
   uint16_t device_id;
   uint16_t appearance;
-} JnrfConfig;
+} NrfhConfig;
 
-extern JnrfConfig jnrf_config;
+extern NrfhConfig nrfh_config;
 
-void jnrf_simple_init(DeviceMode device_mode, char *device_name,
+void nrfh_simple_init(DeviceMode device_mode, char *device_name,
                       uint16_t device_id, uint16_t appearance);
 
-void jnrf_start(void);
+void nrfh_start(void);
 
-#endif  // LIBJNRF_LIBRARY_H
+#endif  // NRFH_LIBRARY_H

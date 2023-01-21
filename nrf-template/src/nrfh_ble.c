@@ -1,4 +1,4 @@
-#include "jnrf_ble.h"
+#include "nrfh_ble.h"
 
 #include <app_error.h>
 #include <ble.h>
@@ -7,14 +7,14 @@
 #include <nrf_sdh_ble.h>
 #include <sdk_common.h>
 
-#include "jnrf.h"
+#include "nrfh.h"
 #include "sdk_config.h"
 
 static void ble_evt_handler(ble_evt_t const* p_ble_evt, void* p_context) {
-  jnrf_config.functions->ble_evt_handler(p_ble_evt);
+  nrfh_config.functions->ble_evt_handler(p_ble_evt);
 }
 
-void jnrf_ble_init() {
+void nrfh_ble_init() {
   ret_code_t err_code;
 
   err_code = nrf_sdh_enable_request();
@@ -35,7 +35,7 @@ void jnrf_ble_init() {
                        NULL);
 }
 
-void jnrf_ble_gap_init() {
+void nrfh_ble_gap_init() {
   ret_code_t err_code;
   ble_gap_conn_params_t gap_conn_params;
   ble_gap_conn_sec_mode_t sec_mode;
@@ -43,11 +43,11 @@ void jnrf_ble_gap_init() {
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
   err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                        (const uint8_t*)jnrf_config.device_name,
-                                        strlen(jnrf_config.device_name));
+                                        (const uint8_t*)nrfh_config.device_name,
+                                        strlen(nrfh_config.device_name));
   APP_ERROR_CHECK(err_code);
 
-  err_code = sd_ble_gap_appearance_set(jnrf_config.appearance);
+  err_code = sd_ble_gap_appearance_set(nrfh_config.appearance);
   APP_ERROR_CHECK(err_code);
 
   memset(&gap_conn_params, 0, sizeof(gap_conn_params));

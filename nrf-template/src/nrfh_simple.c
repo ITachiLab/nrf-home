@@ -1,4 +1,4 @@
-#include "jnrf_simple.h"
+#include "nrfh_simple.h"
 
 #include <app_error.h>
 #include <app_timer.h>
@@ -6,10 +6,10 @@
 #include <boards.h>
 #include <nrf_pwr_mgmt.h>
 
-#include "jnrf.h"
-#include "jnrf_ble.h"
-#include "jnrf_pwrm.h"
-#include "jnrf_timer.h"
+#include "nrfh.h"
+#include "nrfh_ble.h"
+#include "nrfh_pwrm.h"
+#include "nrfh_timer.h"
 
 #define WAKEUP_TIMER_TICKS APP_TIMER_TICKS(30 * 60 * 1000)
 APP_TIMER_DEF(wakeup_timer);
@@ -38,18 +38,18 @@ static void ble_evt_handler(ble_evt_t const* p_ble_evt) {
   }
 }
 
-static void ble_init() { jnrf_ble_init(); }
+static void ble_init() { nrfh_ble_init(); }
 
-static void gap_init() { jnrf_ble_gap_init(); }
+static void gap_init() { nrfh_ble_gap_init(); }
 
-static void power_manager_init() { jnrf_power_manager_init(); }
+static void power_manager_init() { nrfh_power_manager_init(); }
 
 static void advertising_init() {
   ret_code_t err_code;
 
   memset(&manuf_specific_data, 0, sizeof(manuf_specific_data));
   memset(&adv_params, 0, sizeof(adv_params));
-  memset(service_data, 0, sizeof(ble_advdata_service_data_t));
+  memset(service_data, 0, sizeof(service_data));
   memset(&adv_data, 0, sizeof(adv_data));
 
   service_data[0].service_uuid = 0x181A;
@@ -57,7 +57,7 @@ static void advertising_init() {
   service_data[0].data.p_data = humidity;
 
   manuf_specific_data.company_identifier = 0xFFFF;
-  manuf_specific_data.data.p_data = (uint8_t*)&jnrf_config.device_id;
+  manuf_specific_data.data.p_data = (uint8_t*)&nrfh_config.device_id;
   manuf_specific_data.data.size = 2;
 
   adv_params.properties.type =
@@ -124,7 +124,7 @@ static void timer_handler(void* p_context) {
 }
 
 static void timer_init() {
-  jnrf_timer_init();
+  nrfh_timer_init();
 
   app_timer_create(&wakeup_timer, APP_TIMER_MODE_SINGLE_SHOT, timer_handler);
 }
@@ -136,7 +136,7 @@ static void leds_init() {
   bsp_board_init(BSP_INIT_LEDS);
 }
 
-void jnrf_simple_setup() {
+void nrfh_simple_setup() {
   leds_init();
   timer_init();
   power_manager_init();
@@ -144,10 +144,10 @@ void jnrf_simple_setup() {
   gap_init();
   advertising_init();
 
-  jnrf_config.functions->ble_evt_handler = ble_evt_handler;
+  nrfh_config.functions->ble_evt_handler = ble_evt_handler;
 }
 
-void jnrf_simple_start() {
+void nrfh_simple_start() {
   advertising_start();
 
   for (;;) {

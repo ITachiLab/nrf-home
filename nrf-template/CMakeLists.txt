@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 
-project(libjnrf C ASM)
+project(nrfh C ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-O3 -g3 -mcpu=cortex-m4 -mthumb -mabi=aapcs -Wall -Werror -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums")
@@ -26,17 +26,17 @@ add_compile_definitions(
 
 set(PROJECT_SOURCES
         src/main.c
-        src/jnrf.c
-        src/jnrf_pwrm.c
-        src/jnrf_ble.c
-        src/jnrf_simple.c
-        src/jnrf_timer.c)
+        src/nrfh.c
+        src/nrfh_pwrm.c
+        src/nrfh_ble.c
+        src/nrfh_simple.c
+        src/nrfh_timer.c)
 
 set(PROJECT_INCLUDES
         config
         include)
 
-add_executable(jnrf
+add_executable(nrfh
         ${SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52840.S
         ${SDK_ROOT}/components/libraries/log/src/nrf_log_backend_rtt.c
         ${SDK_ROOT}/components/libraries/log/src/nrf_log_backend_serial.c
@@ -94,7 +94,7 @@ add_executable(jnrf
         ${SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52840.S
         ${SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c)
 
-target_include_directories(jnrf PUBLIC
+target_include_directories(nrfh PUBLIC
         ${SDK_ROOT}/components/nfc/ndef/generic/message
         ${SDK_ROOT}/components/nfc/t2t_lib
         ${SDK_ROOT}/components/nfc/t4t_parser/hl_detection_procedure
@@ -224,19 +224,19 @@ target_include_directories(jnrf PUBLIC
         ${SDK_ROOT}/components/libraries/stack_guard
         ${SDK_ROOT}/components/libraries/log/src)
 
-target_link_directories(jnrf PUBLIC "${SDK_ROOT}/modules/nrfx/mdk")
-target_link_libraries(jnrf PUBLIC c nosys m)
+target_link_directories(nrfh PUBLIC "${SDK_ROOT}/modules/nrfx/mdk")
+target_link_libraries(nrfh PUBLIC c nosys m)
 
 add_custom_command(
-        TARGET jnrf
-        BYPRODUCTS jnrf.hex
+        TARGET nrfh
+        BYPRODUCTS nrfh.hex
         POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex jnrf jnrf.hex)
+        COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex nrfh nrfh.hex)
 
 add_custom_target(flash
-        nrfjprog -f nrf52 --program jnrf.hex --sectorerase
+        nrfjprog -f nrf52 --program nrfh.hex --sectorerase
         COMMAND nrfjprog -f nrf52 --reset
-        DEPENDS jnrf.hex)
+        DEPENDS nrfh.hex)
 
 add_custom_target("flash_softdevice"
         nrfjprog -f nrf52 --program "${SDK_ROOT}/components/softdevice/s140/hex/s140_nrf52_7.2.0_softdevice.hex" --sectorerase
