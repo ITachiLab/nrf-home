@@ -1,4 +1,4 @@
 {
-  "gccPath": "",
-  "sdkPath": ""
+  "gccPath": "C:/Program Files (x86)/GNU Arm Embedded Toolchain/9 2020-q2-update/bin/arm-none-eabi-gcc.exe",
+  "sdkRoot": "C:/bin/nrf5_sdk_17.1.0_ddde560"
 }

@@ -8,8 +8,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-O3 -g3 -mcpu=cortex-m4 -mthumb -mabi=aapcs -Wall -Werror -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums")
 set(CMAKE_ASM_FLAGS "-g3 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16")
 set(CMAKE_EXE_LINKER_FLAGS "-T${PROJECT_SOURCE_DIR}/script.ld -Wl,--gc-sections -specs=nano.specs")
-
-set(SDK_ROOT "C:/bin/nrf5_sdk_17.1.0_ddde560")
+set(SDK_ROOT $ENV{SDK_ROOT})
 
 add_compile_definitions(
         DEBUG
@@ -24,6 +23,18 @@ add_compile_definitions(
         __HEAP_SIZE=8192
         __STACK_SIZE=8192
         SOFTDEVICE_PRESENT)
+
+set(PROJECT_SOURCES
+        src/main.c
+        src/jnrf.c
+        src/jnrf_pwrm.c
+        src/jnrf_ble.c
+        src/jnrf_simple.c
+        src/jnrf_timer.c)
+
+set(PROJECT_INCLUDES
+        config
+        include)
 
 add_executable(jnrf
         ${SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52840.S
@@ -65,12 +76,7 @@ add_executable(jnrf
         ${SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
         ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
         ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
-        src/main.c
-        src/jnrf.c
-        src/jnrf_pwrm.c
-        src/jnrf_ble.c
-        src/jnrf_simple.c
-        src/jnrf_timer.c
+        ${PROJECT_SOURCES}
         ${SDK_ROOT}/external/segger_rtt/SEGGER_RTT.c
         ${SDK_ROOT}/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
         ${SDK_ROOT}/external/segger_rtt/SEGGER_RTT_printf.c
@@ -86,7 +92,7 @@ add_executable(jnrf
         ${SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
         ${SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
         ${SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52840.S
-        ${SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c )
+        ${SDK_ROOT}/components/libraries/hardfault/hardfault_implementation.c)
 
 target_include_directories(jnrf PUBLIC
         ${SDK_ROOT}/components/nfc/ndef/generic/message
@@ -155,8 +161,7 @@ target_include_directories(jnrf PUBLIC
         ${SDK_ROOT}/components/libraries/crc16
         ${SDK_ROOT}/components/nfc/t4t_parser/apdu
         ${SDK_ROOT}/components/libraries/util
-        config
-        include
+        ${PROJECT_INCLUDES}
         ${SDK_ROOT}/components/libraries/usbd/class/cdc
         ${SDK_ROOT}/components/libraries/csense
         ${SDK_ROOT}/components/libraries/balloc
@@ -218,38 +223,6 @@ target_include_directories(jnrf PUBLIC
         ${SDK_ROOT}/components/nfc/ndef/conn_hand_parser/ac_rec_parser
         ${SDK_ROOT}/components/libraries/stack_guard
         ${SDK_ROOT}/components/libraries/log/src)
-#include
-#${SDK_ROOT}/external/fprintf
-#${SDK_ROOT}/integration/nrfx/legacy
-#${SDK_ROOT}/modules/nrfx/mdk
-#${SDK_ROOT}/modules/nrfx/hal
-#${SDK_ROOT}/modules/nrfx
-#${SDK_ROOT}/modules/nrfx/templates/nRF52840
-#        ${SDK_ROOT}/modules/nrfx/templates
-#        ${SDK_ROOT}/modules/nrfx/drivers/include
-#        ${SDK_ROOT}/modules/nrfx/drivers
-#        ${SDK_ROOT}/components/boards
-#        ${SDK_ROOT}/components/toolchain/cmsis/include
-#        ${SDK_ROOT}/components/libraries/pwr_mgmt
-#        ${SDK_ROOT}/components/libraries/util
-#        ${SDK_ROOT}/components/libraries/timer
-#        ${SDK_ROOT}/components/libraries/log
-#        ${SDK_ROOT}/components/libraries/sortlist
-#        ${SDK_ROOT}/components/libraries/mutex
-#        ${SDK_ROOT}/components/libraries/atomic
-#        ${SDK_ROOT}/components/libraries/log/src
-#        ${SDK_ROOT}/components/libraries/memobj
-#        ${SDK_ROOT}/components/libraries/balloc
-#        ${SDK_ROOT}/components/libraries/strerror
-#        ${SDK_ROOT}/components/libraries/delay
-#        ${SDK_ROOT}/components/libraries/ringbuf
-#        ${SDK_ROOT}/components/softdevice/s140/headers
-#        ${SDK_ROOT}/components/softdevice/s140/headers/nrf52
-#        ${SDK_ROOT}/components/softdevice/common
-#        ${SDK_ROOT}/components/ble/peer_manager
-#        ${SDK_ROOT}/components/ble/common
-#        ${SDK_ROOT}/components/ble/ble_advertising
-#        ${SDK_ROOT}/components/libraries/experimental_section_vars)
 
 target_link_directories(jnrf PUBLIC "${SDK_ROOT}/modules/nrfx/mdk")
 target_link_libraries(jnrf PUBLIC c nosys m)
@@ -260,7 +233,14 @@ add_custom_command(
         POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex jnrf jnrf.hex)
 
-add_custom_target(Flash
+add_custom_target(flash
         nrfjprog -f nrf52 --program jnrf.hex --sectorerase
         COMMAND nrfjprog -f nrf52 --reset
         DEPENDS jnrf.hex)
+
+add_custom_target("flash_softdevice"
+        nrfjprog -f nrf52 --program "${SDK_ROOT}/components/softdevice/s140/hex/s140_nrf52_7.2.0_softdevice.hex" --sectorerase
+        COMMAND nrfjprog -f nrf52 --reset)
+
+add_custom_target("flash_all"
+        DEPENDS flash_softdevice flash)
