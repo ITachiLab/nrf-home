@@ -11,7 +11,7 @@
 #include "sdk_config.h"
 
 static void ble_evt_handler(ble_evt_t const* p_ble_evt, void* p_context) {
-  nrfh_config.functions->ble_evt_handler(p_ble_evt);
+  nrfh_config->_functions->ble_evt_handler(p_ble_evt);
 }
 
 void nrfh_ble_init() {
@@ -42,12 +42,12 @@ void nrfh_ble_gap_init() {
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
-  err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                        (const uint8_t*)nrfh_config.device_name,
-                                        strlen(nrfh_config.device_name));
+  err_code = sd_ble_gap_device_name_set(
+      &sec_mode, (const uint8_t*)nrfh_config->device_name,
+      strlen(nrfh_config->device_name));
   APP_ERROR_CHECK(err_code);
 
-  err_code = sd_ble_gap_appearance_set(nrfh_config.appearance);
+  err_code = sd_ble_gap_appearance_set(nrfh_config->appearance);
   APP_ERROR_CHECK(err_code);
 
   memset(&gap_conn_params, 0, sizeof(gap_conn_params));

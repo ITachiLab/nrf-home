@@ -11,19 +11,17 @@
 #include "nrfh_pwrm.h"
 #include "nrfh_timer.h"
 
-#define WAKEUP_TIMER_TICKS APP_TIMER_TICKS(30 * 60 * 1000)
-APP_TIMER_DEF(wakeup_timer);
+#define ADVERTISING_LED BSP_BOARD_LED_0
+
+APP_TIMER_DEF(cycle_timer);
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
-
-#define ADVERTISING_LED                 BSP_BOARD_LED_0
 
 static ble_advdata_service_data_t service_data[1];
 static ble_advdata_t adv_data;
 static ble_gap_adv_params_t adv_params;
 static ble_advdata_manuf_data_t manuf_specific_data;
-static uint8_t humidity[] = {0x6F, 0x2A, 0x02, 0x00};
 
 static ble_gap_adv_data_t gap_adv_data = {
     .adv_data = {.p_data = m_enc_advdata, .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX},
@@ -33,7 +31,6 @@ static void ble_evt_handler(ble_evt_t const* p_ble_evt) {
   switch (p_ble_evt->header.evt_id) {
     case BLE_GAP_EVT_ADV_SET_TERMINATED:
       bsp_board_led_off(BSP_BOARD_LED_0);
-      app_timer_start(wakeup_timer, WAKEUP_TIMER_TICKS, NULL);
       break;
   }
 }
@@ -44,6 +41,34 @@ static void gap_init() { nrfh_ble_gap_init(); }
 
 static void power_manager_init() { nrfh_power_manager_init(); }
 
+static void update_manufacturer_data(uint8_t* buffer, size_t size) {
+  ManufacturerData m_data = nrfh_config->_simple->manufacturer_data;
+
+  if (m_data.company_id) {
+    adv_data.p_manuf_specific_data = &manuf_specific_data;
+
+    manuf_specific_data.company_identifier = m_data.company_id;
+
+    if (m_data.get_data) {
+      size_t data_size = m_data.get_data(buffer, size);
+
+      manuf_specific_data.data.size = data_size;
+      manuf_specific_data.data.p_data = buffer;
+    }
+  } else {
+    adv_data.p_manuf_specific_data = NULL;
+  }
+}
+
+//static void update_service_data() {
+//  adv_data.p_service_data_array = service_data;
+//adv_data.service_data_count = 1;
+//
+//  service_data[0].service_uuid = 0x181A;
+//  service_data[0].data.size = 4;
+//  service_data[0].data.p_data = humidity;
+//}
+
 static void advertising_init() {
   ret_code_t err_code;
 
@@ -52,28 +77,24 @@ static void advertising_init() {
   memset(service_data, 0, sizeof(service_data));
   memset(&adv_data, 0, sizeof(adv_data));
 
-  service_data[0].service_uuid = 0x181A;
-  service_data[0].data.size = 4;
-  service_data[0].data.p_data = humidity;
+  //  update_service_data();
 
-  manuf_specific_data.company_identifier = 0xFFFF;
-  manuf_specific_data.data.p_data = (uint8_t*)&nrfh_config.device_id;
-  manuf_specific_data.data.size = 2;
+  uint8_t md_buffer[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
+  update_manufacturer_data(md_buffer, BLE_GAP_ADV_SET_DATA_SIZE_MAX);
 
   adv_params.properties.type =
       BLE_GAP_ADV_TYPE_NONCONNECTABLE_NONSCANNABLE_UNDIRECTED;
   adv_params.filter_policy = BLE_GAP_ADV_FP_ANY;
-  adv_params.interval = MSEC_TO_UNITS(500, UNIT_0_625_MS);
-  adv_params.duration = MSEC_TO_UNITS(60000, UNIT_10_MS);
+  adv_params.interval =
+      MSEC_TO_UNITS(nrfh_config->_simple->interval_ms, UNIT_0_625_MS);
+  adv_params.duration =
+      MSEC_TO_UNITS(nrfh_config->_simple->advertising_ms, UNIT_10_MS);
   adv_params.primary_phy = BLE_GAP_PHY_AUTO;
   adv_params.secondary_phy = BLE_GAP_PHY_AUTO;
 
   adv_data.name_type = BLE_ADVDATA_FULL_NAME;
   adv_data.include_appearance = true;
   adv_data.flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
-  adv_data.p_manuf_specific_data = &manuf_specific_data;
-  adv_data.p_service_data_array = service_data;
-  adv_data.service_data_count = 1;
 
   err_code = ble_advdata_encode(&adv_data, gap_adv_data.adv_data.p_data,
                                 &gap_adv_data.adv_data.len);
@@ -85,7 +106,8 @@ static void advertising_init() {
 }
 
 static void tx_power_set() {
-  ret_code_t err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, m_adv_handle, 4);
+  ret_code_t err_code =
+      sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, m_adv_handle, 4);
   APP_ERROR_CHECK(err_code);
 }
 
@@ -104,11 +126,10 @@ static void advertising_start() {
  * @param p_context
  */
 static void timer_handler(void* p_context) {
-  humidity[3]++;
+  uint8_t md_buffer[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
+  update_manufacturer_data(md_buffer, BLE_GAP_ADV_SET_DATA_SIZE_MAX);
 
-  service_data[0].service_uuid = 0x181A;
-  service_data[0].data.size = 4;
-  service_data[0].data.p_data = humidity;
+  //  update_service_data();
 
   gap_adv_data.adv_data.len = BLE_GAP_ADV_SET_DATA_SIZE_MAX;
 
@@ -126,15 +147,13 @@ static void timer_handler(void* p_context) {
 static void timer_init() {
   nrfh_timer_init();
 
-  app_timer_create(&wakeup_timer, APP_TIMER_MODE_SINGLE_SHOT, timer_handler);
+  app_timer_create(&cycle_timer, APP_TIMER_MODE_REPEATED, timer_handler);
 }
 
 /**
  *
  */
-static void leds_init() {
-  bsp_board_init(BSP_INIT_LEDS);
-}
+static void leds_init() { bsp_board_init(BSP_INIT_LEDS); }
 
 void nrfh_simple_setup() {
   leds_init();
@@ -144,11 +163,13 @@ void nrfh_simple_setup() {
   gap_init();
   advertising_init();
 
-  nrfh_config.functions->ble_evt_handler = ble_evt_handler;
+  nrfh_config->_functions->ble_evt_handler = ble_evt_handler;
 }
 
 void nrfh_simple_start() {
   advertising_start();
+  app_timer_start(cycle_timer,
+                  APP_TIMER_TICKS(nrfh_config->_simple->cycle_ms), NULL);
 
   for (;;) {
     nrf_pwr_mgmt_run();

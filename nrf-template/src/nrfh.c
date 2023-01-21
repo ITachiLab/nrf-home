@@ -4,23 +4,20 @@
 
 #include "nrfh_simple.h"
 
-NrfhConfig nrfh_config = {0};
+NrfhConfig * nrfh_config = NULL;
 
 static ModeFunctions mode_functions[2] = {{// SIMPLE_ADVERTISER
                                            .setup = nrfh_simple_setup,
                                            .start = nrfh_simple_start}};
 
-void nrfh_simple_init(DeviceMode device_mode, char* device_name,
-                      uint16_t device_id, uint16_t appearance) {
-  memset(&nrfh_config, 0, sizeof(NrfhConfig));
-
-  nrfh_config.functions = &mode_functions[device_mode];
-  nrfh_config.device_name = device_name;
-  nrfh_config.appearance = appearance;
-  nrfh_config.device_id = device_id;
+void nrfh_simple_init(NrfhConfig * nrfh_user_config,
+                      NrfhSimpleConfig * nrfh_simple_config) {
+  nrfh_config = nrfh_user_config;
+  nrfh_config->_functions = &mode_functions[SIMPLE_ADVERTISER];
+  nrfh_config->_simple = nrfh_simple_config;
 }
 
 void nrfh_start() {
-  nrfh_config.functions->setup();
-  nrfh_config.functions->start();
+  nrfh_config->_functions->setup();
+  nrfh_config->_functions->start();
 }

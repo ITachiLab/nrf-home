@@ -2,6 +2,7 @@
 #define NRFH_LIBRARY_H
 
 #include <ble.h>
+#include <stddef.h>
 
 typedef enum {
   SIMPLE_ADVERTISER,
@@ -15,17 +16,27 @@ typedef struct {
 } ModeFunctions;
 
 typedef struct {
-  DeviceMode device_mode;
+  uint16_t company_id;
+  size_t (*get_data)(uint8_t *buffer, size_t size);
+} ManufacturerData;
+
+typedef struct {
+  ManufacturerData manufacturer_data;
+  uint32_t interval_ms;
+  uint32_t advertising_ms;
+  uint32_t cycle_ms;
+} NrfhSimpleConfig;
+
+typedef struct {
   char *device_name;
-  ModeFunctions *functions;
-  uint16_t device_id;
   uint16_t appearance;
+  NrfhSimpleConfig *_simple;
+  ModeFunctions *_functions;
 } NrfhConfig;
 
-extern NrfhConfig nrfh_config;
+extern NrfhConfig *nrfh_config;
 
-void nrfh_simple_init(DeviceMode device_mode, char *device_name,
-                      uint16_t device_id, uint16_t appearance);
+void nrfh_simple_init(NrfhConfig *config, NrfhSimpleConfig *simple_config);
 
 void nrfh_start(void);
 
